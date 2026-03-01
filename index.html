@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>История — тренажёр</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- START MODAL -->
+<div class="modal-overlay show" id="start-modal">
+    <div class="modal">
+        <h1>Тренажёр</h1>
+        <p>Установите соответствие между событиями и участниками.</p>
+        <button id="start-btn" class="primary-btn">Начать</button>
+    </div>
+</div>
+
+<!-- FINISH MODAL -->
+<div class="modal-overlay hidden" id="finish-modal">
+    <div class="modal">
+        <h1>Отличная работа 🎉</h1>
+        <p id="final-text"></p>
+        <button onclick="resetProgress()" class="primary-btn">Пройти заново</button>
+    </div>
+</div>
+
+<div class="app">
+    <header class="header">
+        <div>
+            <div class="course">Годовой курс · ЕГЭ</div>
+            <h2>История</h2>
+        </div>
+
+        <div class="progress-block">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-text" id="progress-text">0 из 0</div>
+        </div>
+    </header>
+
+    <main class="card">
+        <div class="question-title" id="question-number"></div>
+        <p class="question-description" id="question-description"></p>
+
+        <div class="matching">
+            <div id="events-list"></div>
+            <div id="answers-slots"></div>
+        </div>
+
+        <div class="options" id="options-grid"></div>
+
+        <div class="controls">
+            <button id="check-btn" class="primary-btn" disabled>Ответить</button>
+            <button id="reset-btn" class="ghost-btn">Сбросить</button>
+        </div>
+
+        <div id="feedback" class="feedback"></div>
+    </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
