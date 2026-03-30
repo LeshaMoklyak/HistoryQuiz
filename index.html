@@ -2,28 +2,64 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>История — тренажёр</title>
+    <title>История — тренажёр ЕГЭ</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- START MODAL -->
 <div class="modal-overlay show" id="start-modal">
-    <div class="modal">
-        <h1>Тренажёр</h1>
-        <p>Установите соответствие между событиями и участниками.</p>
-        <button id="start-btn" class="primary-btn">Начать</button>
+    <div class="modal modal--selector">
+        <div class="selector-header">
+            <h1>Тренажёр ЕГЭ</h1>
+            <p>История России · Выберите тип заданий</p>
+        </div>
+        <div class="quiz-cards">
+
+            <button class="quiz-card" data-quiz="personalities">
+                <div class="quiz-card__icon">👤</div>
+                <div class="quiz-card__info">
+                    <div class="quiz-card__title">Личности</div>
+                    <div class="quiz-card__desc">Сопоставьте события и исторических деятелей</div>
+                    <div class="quiz-card__count">717 соответствий</div>
+                </div>
+                <div class="quiz-card__arrow">›</div>
+            </button>
+
+            <button class="quiz-card" data-quiz="facts">
+                <div class="quiz-card__icon">📋</div>
+                <div class="quiz-card__info">
+                    <div class="quiz-card__title">Факты</div>
+                    <div class="quiz-card__desc">Сопоставьте события и исторические факты</div>
+                    <div class="quiz-card__count">755 соответствий</div>
+                </div>
+                <div class="quiz-card__arrow">›</div>
+            </button>
+
+            <button class="quiz-card" data-quiz="culture">
+                <div class="quiz-card__icon">🎨</div>
+                <div class="quiz-card__info">
+                    <div class="quiz-card__title">Культура</div>
+                    <div class="quiz-card__desc">Сопоставьте произведения и их характеристики</div>
+                    <div class="quiz-card__count">471 соответствие</div>
+                </div>
+                <div class="quiz-card__arrow">›</div>
+            </button>
+
+        </div>
     </div>
 </div>
 
-<!-- FINISH MODAL -->
+
 <div class="modal-overlay hidden" id="finish-modal">
     <div class="modal">
         <h1>Отличная работа 🎉</h1>
         <p id="final-text"></p>
-        <button onclick="resetProgress()" class="primary-btn">Пройти заново</button>
+        <div class="modal-buttons">
+            <button onclick="resetProgress()" class="primary-btn">Пройти заново</button>
+            <button onclick="backToSelector()" class="ghost-btn">← Выбрать другой тренажёр</button>
+        </div>
     </div>
 </div>
 
@@ -31,14 +67,24 @@
     <header class="header">
         <div>
             <div class="course">Годовой курс · ЕГЭ</div>
-            <h2>История</h2>
+            <h2 id="quiz-title">История</h2>
         </div>
 
-        <div class="progress-block">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill"></div>
+        <button class="selector-btn" onclick="backToSelector()" title="Сменить тренажёр">
+            ☰ Тренажёры
+        </button>
+
+        <div class="header-right">
+            <div class="score-block">
+                <div class="score-value" id="score-value">0</div>
+                <div class="score-label">баллов</div>
             </div>
-            <div class="progress-text" id="progress-text">0 из 0</div>
+            <div class="progress-block">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-text" id="progress-text">0 из 0</div>
+            </div>
         </div>
     </header>
 
