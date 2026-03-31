@@ -36,8 +36,7 @@ const finishModal  = document.getElementById("finish-modal");
 const finalText    = document.getElementById("final-text");
 const quizTitle    = document.getElementById("quiz-title");
 
-const eventsList   = document.getElementById("events-list");
-const answersSlots = document.getElementById("answers-slots");
+const matchingGrid = document.getElementById("matching-grid");
 const optionsGrid  = document.getElementById("options-grid");
 const checkBtn     = document.getElementById("check-btn");
 const resetBtn     = document.getElementById("reset-btn");
@@ -52,7 +51,7 @@ const scoreValue          = document.getElementById("score-value");
 // ============================================================
 // Состояние
 // ============================================================
-const pairsCache  = {};          // кеш данных по типу квиза
+const pairsCache  = {};
 let currentConfig   = null;
 let allPairs        = [];
 let pairQueue       = [];
@@ -62,6 +61,7 @@ let score           = 0;
 let currentQuestion = null;
 let isChecking      = false;
 let userAnswers     = {};
+let selectedOption  = null;   // для клика мышью
 
 let touchDragData = null;
 let dragClone     = null;
@@ -161,28 +161,7 @@ function getThemeNum(subtopic) {
 }
 
 function formatScore(s) {
-    return Number.isInteger(s) ? String(s) : s.toFixed(1);
-}
-
-// ============================================================
-// Система баллов
-// ============================================================
-function getBonus(s) {
-    if (s < 300) return 4;
-    if (s < 400) return 3;
-    if (s < 500) return 2;
-    if (s < 600) return 1;
-    return 0.5;
-}
-
-function getPenalty(s) {
-    if (s < 100) return 0;
-    if (s < 200) return 1;
-    if (s < 300) return 2;
-    if (s < 400) return 3;
-    if (s < 500) return 4;
-    if (s < 600) return 5;
-    return 10;
+    return String(s);
 }
 
 // ============================================================
@@ -205,7 +184,6 @@ function getDistractors(selectedPairs, count = 2) {
 
 // ============================================================
 // Построение вопроса: по 1 паре из каждой из 4 тем
-// (без повторения ни события, ни ответа)
 // ============================================================
 function buildQuestion() {
     if (pairQueue.length === 0) return null;
@@ -214,7 +192,6 @@ function buildQuestion() {
     const usedPersons = new Set();
     const usedEvents  = new Set();
 
-    // Шаг 1: по одной паре из каждой темы
     for (const theme of ["1", "2", "3", "4"]) {
         const idx = pairQueue.findIndex(p =>
             getThemeNum(p.subtopic) === theme &&
@@ -228,7 +205,6 @@ function buildQuestion() {
         }
     }
 
-    // Шаг 2: если каких-то тем не осталось — добираем из любых (финал игры)
     if (selected.length < 4) {
         for (let i = 0; i < pairQueue.length && selected.length < 4; i++) {
             const p = pairQueue[i];
@@ -268,7 +244,10 @@ function loadQuestion() {
         finalText.textContent =
             `Все соответствия выучены! Итоговый счёт: ${formatScore(score)} баллов`;
         finishModal.classList.remove("hidden");
-        finishModal.classList.add("show");
+        // Двойной rAF гарантирует, что display:none → block отрисуется раньше перехода
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            finishModal.classList.add("show");
+        }));
         updateProgress();
         return;
     }
@@ -276,6 +255,7 @@ function loadQuestion() {
     currentQuestion = q;
     userAnswers     = {};
     isChecking      = false;
+    selectedOption  = null;
 
     feedback.textContent = "";
     feedback.className   = "feedback";
@@ -284,30 +264,28 @@ function loadQuestion() {
     questionNumber.textContent      = "Установите соответствие";
     questionDescription.textContent = currentConfig.instruction;
 
-    eventsList.innerHTML   = "";
-    answersSlots.innerHTML = "";
-    optionsGrid.innerHTML  = "";
+    matchingGrid.innerHTML  = "";
+    optionsGrid.innerHTML   = "";
 
-    const evFrag   = document.createDocumentFragment();
-    const slotFrag = document.createDocumentFragment();
-
+    // Рендерим пары event+slot вперемешку — CSS grid (1fr 1fr) выровняет их по строкам
+    const pairsFrag = document.createDocumentFragment();
     q.events.forEach((ev, i) => {
         const item = document.createElement("div");
-        item.className   = "event-item";
-        item.textContent = `${i + 1}. ${ev.text}`;
-        evFrag.appendChild(item);
+        item.className        = "event-item";
+        item.textContent      = `${i + 1}. ${ev.text}`;
+        item.style.animationDelay = `${0.03 + i * 0.03}s`;
+        pairsFrag.appendChild(item);
 
         const slot = document.createElement("div");
-        slot.className     = "answer-slot";
-        slot.dataset.index = String(i);
-        slot.textContent   = "Нажмите или перетащите";
+        slot.className        = "answer-slot";
+        slot.dataset.index    = String(i);
+        slot.textContent      = "Нажмите или перетащите";
+        slot.style.animationDelay = `${0.04 + i * 0.03}s`;
         slot.setAttribute("role", "region");
         slot.setAttribute("aria-label", `Слот для ответа ${i + 1}`);
-        slotFrag.appendChild(slot);
+        pairsFrag.appendChild(slot);
     });
-
-    eventsList.appendChild(evFrag);
-    answersSlots.appendChild(slotFrag);
+    matchingGrid.appendChild(pairsFrag);
 
     const optFrag = document.createDocumentFragment();
     q.participants.forEach(p => {
@@ -350,14 +328,17 @@ function performDrop(slot, id, text, q) {
 }
 
 // ============================================================
-// Drag & Drop — мышь и touch
+// Drag & Drop — мышь, touch и клик
 // ============================================================
 function setupDnD(q) {
     document.querySelectorAll(".option").forEach(opt => {
+        // Drag (мышь)
         opt.addEventListener("dragstart", e => {
             e.dataTransfer.setData("id",   opt.dataset.id);
             e.dataTransfer.setData("text", opt.textContent);
         });
+
+        // Touch (мобильный)
         opt.addEventListener("touchstart", e => {
             if (opt.classList.contains("used")) return;
             e.preventDefault();
@@ -365,14 +346,27 @@ function setupDnD(q) {
             touchDragData = { id: opt.dataset.id, text: opt.textContent };
             dragClone = opt.cloneNode(true);
             dragClone.style.cssText = `
-                position:fixed;opacity:0.85;z-index:9999;pointer-events:none;
+                position:fixed;opacity:0.9;z-index:9999;pointer-events:none;
                 width:${opt.offsetWidth}px;
                 left:${touch.clientX - opt.offsetWidth  / 2}px;
                 top:${touch.clientY  - opt.offsetHeight / 2}px;
-                margin:0;transform:scale(1.08);border-radius:8px;
+                margin:0;border-radius:8px;will-change:left,top;
             `;
             document.body.appendChild(dragClone);
         }, { passive: false });
+
+        // Клик (выбор мышью)
+        opt.addEventListener("click", () => {
+            if (isChecking || opt.classList.contains("used")) return;
+            if (selectedOption?.element === opt) {
+                opt.classList.remove("selected");
+                selectedOption = null;
+            } else {
+                if (selectedOption) selectedOption.element.classList.remove("selected");
+                opt.classList.add("selected");
+                selectedOption = { id: opt.dataset.id, text: opt.textContent, element: opt };
+            }
+        });
     });
 
     document.querySelectorAll(".answer-slot").forEach(slot => {
@@ -381,6 +375,8 @@ function setupDnD(q) {
             e.preventDefault();
             performDrop(slot, e.dataTransfer.getData("id"), e.dataTransfer.getData("text"), q);
         });
+
+        // Touch: убрать ответ из слота при тапе на заполненный слот
         slot.addEventListener("touchstart", e => {
             if (dragClone) return;
             if (!slot.classList.contains("filled")) return;
@@ -394,6 +390,25 @@ function setupDnD(q) {
             if (optEl) optEl.classList.remove("used");
             checkBtn.disabled = Object.keys(userAnswers).length < q.events.length;
         }, { passive: false });
+
+        // Клик: поместить выбранный вариант или очистить слот
+        slot.addEventListener("click", () => {
+            if (isChecking) return;
+            if (selectedOption) {
+                performDrop(slot, selectedOption.id, selectedOption.text, q);
+                selectedOption.element.classList.remove("selected");
+                selectedOption = null;
+            } else if (slot.classList.contains("filled")) {
+                const id = userAnswers[slot.dataset.index];
+                if (!id) return;
+                delete userAnswers[slot.dataset.index];
+                slot.textContent = "Нажмите или перетащите";
+                slot.classList.remove("filled");
+                const optEl = document.querySelector(`[data-id="${id}"]`);
+                if (optEl) optEl.classList.remove("used");
+                checkBtn.disabled = Object.keys(userAnswers).length < q.events.length;
+            }
+        });
     });
 }
 
@@ -405,46 +420,46 @@ checkBtn.onclick = () => {
     isChecking        = true;
     checkBtn.disabled = true;
 
+    // Снимаем выделение с выбранного варианта
+    if (selectedOption) {
+        selectedOption.element.classList.remove("selected");
+        selectedOption = null;
+    }
+
     const q          = currentQuestion;
     const wrongPairs = [];
-    let totalGained  = 0;
-    let totalLost    = 0;
 
     q.pairs.forEach((pair, i) => {
         const slot = document.querySelector(`.answer-slot[data-index="${i}"]`);
         if (!slot) return;
         if (userAnswers[String(i)] === `p${pair.id}`) {
-            const bonus = getBonus(score);
-            score += bonus; totalGained += bonus; solvedCount++;
+            solvedCount++;
             slot.classList.add("correct");
-            showDelta(slot, `+${formatScore(bonus)}`, false);
         } else {
-            const pen = getPenalty(score);
-            score = Math.max(0, score - pen); totalLost += pen;
             wrongPairs.push(pair);
             slot.classList.add("incorrect");
-            if (pen > 0) showDelta(slot, `−${pen}`, true);
         }
     });
 
-    const right = q.pairs.length - wrongPairs.length;
-    const parts = [];
-    if (wrongPairs.length === 0) parts.push("✓ Всё верно!");
-    else {
-        if (right > 0)             parts.push(`✓ ${right} верно`);
-        if (wrongPairs.length > 0) parts.push(`✗ ${wrongPairs.length} неверно`);
+    const allCorrect = wrongPairs.length === 0;
+    if (allCorrect) {
+        score += 2;
+        feedback.textContent = "✓ Верно! +2 балла";
+        feedback.className   = "feedback success";
+        showDelta("+2");
+    } else {
+        const right = q.pairs.length - wrongPairs.length;
+        feedback.textContent = right > 0
+            ? `✓ ${right} верно   |   ✗ ${wrongPairs.length} неверно`
+            : `✗ ${wrongPairs.length} неверно`;
+        feedback.className = "feedback error";
     }
-    if (totalGained > 0) parts.push(`+${formatScore(totalGained)} б.`);
-    if (totalLost   > 0) parts.push(`−${totalLost} б.`);
-    feedback.textContent = parts.join("   |   ");
-    feedback.className   = wrongPairs.length === 0 ? "feedback success" : "feedback error";
 
     updateScoreDisplay();
     updateProgress();
 
     setTimeout(() => {
         document.querySelectorAll(".answer-slot").forEach(s => s.classList.remove("correct", "incorrect"));
-        document.querySelectorAll(".score-delta").forEach(el => el.remove());
 
         wrongPairs.forEach(pair => {
             const minPos = Math.max(1, Math.ceil(pairQueue.length / 2));
@@ -454,17 +469,18 @@ checkBtn.onclick = () => {
 
         saveProgress();
         loadQuestion();
-    }, 1400);
+    }, 900);
 };
 
 // ============================================================
-// Всплывающий +N / −N на слоте
+// Всплывающий +2 над блоком счёта
 // ============================================================
-function showDelta(slot, text, isNegative) {
-    const d = document.createElement("span");
-    d.className   = `score-delta ${isNegative ? "score-delta--neg" : "score-delta--pos"}`;
+function showDelta(text) {
+    const d = document.createElement("div");
+    d.className   = "score-delta score-delta--pos";
     d.textContent = text;
-    slot.appendChild(d);
+    document.querySelector(".score-block").appendChild(d);
+    d.addEventListener("animationend", () => d.remove());
 }
 
 // ============================================================
@@ -496,16 +512,21 @@ function updateScoreDisplay() {
 // Навигация: выбрать другой тренажёр
 // ============================================================
 window.backToSelector = function () {
+    // Сохраняем пары текущего вопроса обратно в очередь, чтобы они не пропали
+    if (currentQuestion && currentConfig) {
+        currentQuestion.pairs.forEach(pair => pairQueue.push(pair));
+        saveProgress();
+    }
+
     finishModal.classList.remove("show");
     finishModal.classList.add("hidden");
     startModal.classList.remove("hidden");
     startModal.classList.add("show");
-    // Сброс UI
+
     allPairs = []; pairQueue = []; solvedCount = 0;
     totalPairs = 0; score = 0; currentQuestion = null; currentConfig = null;
+    selectedOption = null;
     quizTitle.textContent = "История";
-    updateProgress();
-    updateScoreDisplay();
 };
 
 // ============================================================
