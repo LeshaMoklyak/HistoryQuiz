@@ -60,27 +60,24 @@ body{
     text-transform:uppercase;
 }
 
-/* --- Всплывающий +N / −N на слотах --- */
-.answer-slot{ position: relative; }
-
+/* --- Всплывающий +N над блоком счёта --- */
 .score-delta{
-    position:absolute;
-    top:-14px;
-    right:6px;
-    font-size:14px;
+    display:block;
+    text-align:center;
+    font-size:20px;
     font-weight:700;
     pointer-events:none;
-    animation: deltaFly 1.4s ease-out forwards;
-    z-index: 10;
+    animation: deltaFly 0.7s ease-out forwards;
+    margin-top: 4px;
 }
 
 .score-delta--pos{ color:#16a34a; }
 .score-delta--neg{ color:#dc2626; }
 
 @keyframes deltaFly{
-    0%  { opacity:1; transform:translateY(0) scale(1); }
-    60% { opacity:1; transform:translateY(-22px) scale(1.1); }
-    100%{ opacity:0; transform:translateY(-36px) scale(0.9); }
+    0%  { opacity:1; transform:translateY(0) scale(1.1); }
+    60% { opacity:1; transform:translateY(-10px) scale(1); }
+    100%{ opacity:0; transform:translateY(-20px); }
 }
 
 .progress-bar{
@@ -131,7 +128,6 @@ body{
     background:#f3f4f6;
     padding:14px;
     border-radius:10px;
-    margin-bottom:10px;
 }
 
 .answer-slot{
@@ -139,9 +135,9 @@ body{
     border:2px dashed #d1d5db;
     padding:14px;
     border-radius:10px;
-    margin-bottom:10px;
     min-height:50px;
     transition:.2s;
+    cursor:pointer;
 }
 
 .answer-slot.filled{
@@ -164,6 +160,12 @@ body{
     text-align:center;
     transition:.2s;
     touch-action: none;
+}
+
+.option.selected{
+    box-shadow: 0 0 0 3px #1f2937;
+    transform: scale(1.03);
+    cursor: pointer;
 }
 
 .option.used{
@@ -390,21 +392,10 @@ body{
 /* Анимация появления слотов и событий */
 .event-item, .answer-slot, .option {
     opacity: 0;
-    transform: translateY(20px);
-    animation: fadeInUp 0.4s forwards;
+    transform: translateY(12px);
+    animation: fadeInUp 0.18s forwards;
 }
 
-/* Разная задержка для последовательного появления (до 5 элементов) */
-.event-item:nth-child(1) { animation-delay: 0.1s; }
-.event-item:nth-child(2) { animation-delay: 0.2s; }
-.event-item:nth-child(3) { animation-delay: 0.3s; }
-.event-item:nth-child(4) { animation-delay: 0.4s; }
-.event-item:nth-child(5) { animation-delay: 0.5s; }
-.answer-slot:nth-child(1) { animation-delay: 0.15s; }
-.answer-slot:nth-child(2) { animation-delay: 0.25s; }
-.answer-slot:nth-child(3) { animation-delay: 0.35s; }
-.answer-slot:nth-child(4) { animation-delay: 0.45s; }
-.answer-slot:nth-child(5) { animation-delay: 0.55s; }
 
 @keyframes fadeInUp {
     to {
@@ -417,14 +408,14 @@ body{
 .answer-slot.correct {
     border-color: #16a34a;
     background: #d1fae5;
-    animation: pulseGreen 0.6s;
+    animation: pulseGreen 0.3s;
 }
 
 /* Подсветка неправильного ответа */
 .answer-slot.incorrect {
     border-color: #dc2626;
     background: #fee2e2;
-    animation: pulseRed 0.6s;
+    animation: pulseRed 0.3s;
 }
 
 @keyframes pulseGreen {
@@ -449,7 +440,7 @@ body{
     .progress-block { width: 160px; }
     .score-block { padding: 8px 14px; min-width: 70px; }
     .score-value { font-size: 20px; }
-    .matching { grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+    .matching { grid-template-columns: 1fr; gap: 8px; margin-bottom: 16px; }
     .card { padding: 16px; }
     .options { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
     .answer-slot { min-height: 48px; font-size: 14px; }
