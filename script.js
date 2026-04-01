@@ -165,21 +165,34 @@ function formatScore(s) {
 }
 
 // ============================================================
-// Дистракторы: из любых других подтем (разных между собой)
+// Дистракторы: по одному из каждой из 4 тем, из другой подтемы чем правильный ответ
 // ============================================================
-function getDistractors(selectedPairs, count = 2) {
+function getDistractors(selectedPairs) {
     const usedSubs    = new Set(selectedPairs.map(p => p.subtopic));
     const usedPersons = new Set(selectedPairs.map(p => p.person));
-    const seen = new Set();
-    const pool = [];
-    for (const p of allPairs) {
-        if (!usedSubs.has(p.subtopic) && !usedPersons.has(p.person) && !seen.has(p.person)) {
-            seen.add(p.person);
-            pool.push(p.person);
+    const distractors = [];
+
+    for (const theme of ["1", "2", "3", "4"]) {
+        const pool = [];
+        const seen = new Set();
+        for (const p of allPairs) {
+            if (getThemeNum(p.subtopic) === theme &&
+                !usedSubs.has(p.subtopic) &&
+                !usedPersons.has(p.person) &&
+                !seen.has(p.person)) {
+                seen.add(p.person);
+                pool.push(p.person);
+            }
+        }
+        if (pool.length > 0) {
+            shuffle(pool);
+            const chosen = pool[0];
+            distractors.push(chosen);
+            usedPersons.add(chosen); // исключаем дублирование между темами
         }
     }
-    shuffle(pool);
-    return pool.slice(0, count);
+
+    return distractors;
 }
 
 // ============================================================
